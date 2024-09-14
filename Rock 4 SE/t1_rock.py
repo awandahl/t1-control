@@ -61,6 +61,9 @@ def frequency_to_band(freq):
             return band_id
     return 0  # Unknown band
 
+def band_to_binary(band):
+    return f'{band:04b}'  # Convert the band to a 4-bit binary string
+
 def send_bit(bit):
     """Send a single bit to the T1."""
     gpio_output(TUNE_PIN, 1)
@@ -70,6 +73,9 @@ def send_bit(bit):
 
 def send_band(band):
     """Send band information to the T1."""
+    binary_representation = band_to_binary(band)
+    print(f"Sending band: {band}, Binary: {binary_representation}")
+
     # Activate tuner
     gpio_output(TUNE_PIN, 1)
     time.sleep(0.5)
@@ -84,10 +90,11 @@ def send_band(band):
     time.sleep(0.01)  # Wait 10ms
 
     # Send 4-bit band ID
-    for i in range(3, -1, -1):
-        send_bit((band >> i) & 1)
+    for bit in binary_representation:
+        send_bit(int(bit))
 
     gpio_output(TUNE_PIN, 0)
+    print("Finished sending band information.")
 
 def main():
     gpio_setup()
@@ -111,4 +118,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
