@@ -4,8 +4,8 @@ import gpiod
 
 # GPIO configuration
 CHIP = 'gpiochip0'  # You might need to change this based on your setup
-TUNE_PIN = 17  # Replace with actual GPIO number
-DATA_PIN = 18  # Replace with actual GPIO number
+TUNE_PIN = 11  # Replace with actual GPIO number
+DATA_PIN = 13  # Replace with actual GPIO number
 
 # Rigctl configuration
 RIG_MODEL = "2002"  # TS-440S for QRP Labs QDX. Replace with your radio's model number
