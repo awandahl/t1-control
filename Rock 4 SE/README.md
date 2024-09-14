@@ -1,5 +1,8 @@
 
 ### Rock 4 SE  
+
+https://wiki.radxa.com/Rock4/hardware/gpio
+
 ```
 aw@5x7w:~$ cat /etc/os-release
 PRETTY_NAME="Armbian 24.5.5 bookworm"
