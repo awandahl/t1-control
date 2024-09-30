@@ -2,10 +2,10 @@ import time
 import subprocess
 import gpiod
 
-# GPIO configuration
-CHIP = 'gpiochip0'  # You might need to change this based on your setup
-TUNE_PIN = 11  # Replace with actual GPIO number
-DATA_PIN = 13  # Replace with actual GPIO number
+# Define the GPIO chip and pin numbers
+CHIP = 'gpiochip4'
+TUNE_PIN = 18  # GPIO4_C2, physical pin 11
+DATA_PIN = 22  # GPIO4_C6, physical pin 13
 
 # Rigctl configuration
 RIG_MODEL = "2002"  # TS-440S for QRP Labs QDX. Replace with your radio's model number
@@ -17,7 +17,7 @@ data_line = chip.get_line(DATA_PIN)
 
 def gpio_setup():
     tune_line.request(consumer="T1_control", type=gpiod.LINE_REQ_DIR_OUT)
-    data_line.request(consumer="T1_control", type=gpiod.LINE_REQ_DIR_IN)
+    data_line.request(consumer="T1_control", type=gpiod.LINE_REQ_DIR_OUT)
 
 def gpio_cleanup():
     tune_line.release()
@@ -26,10 +26,8 @@ def gpio_cleanup():
 def gpio_output(pin, value):
     if pin == TUNE_PIN:
         tune_line.set_value(value)
-
-def gpio_input(pin):
-    if pin == DATA_PIN:
-        return data_line.get_value()
+    elif pin == DATA_PIN:
+        data_line.set_value(value)
 
 def get_frequency():
     """Get current frequency from the radio using rigctl."""
@@ -66,9 +64,9 @@ def band_to_binary(band):
 
 def send_bit(bit):
     """Send a single bit to the T1."""
-    gpio_output(TUNE_PIN, 1)
+    gpio_output(DATA_PIN, 1)
     time.sleep(0.004 if bit else 0.0015)  # 4ms for '1', 1.5ms for '0'
-    gpio_output(TUNE_PIN, 0)
+    gpio_output(DATA_PIN, 0)
     time.sleep(0.0015)  # 1.5ms low between bits
 
 def send_band(band):
@@ -81,19 +79,18 @@ def send_band(band):
     time.sleep(0.5)
     gpio_output(TUNE_PIN, 0)
 
-    # Wait for T1 response
-    while gpio_input(DATA_PIN) == 0:
-        time.sleep(0.001)
-    while gpio_input(DATA_PIN) == 1:
-        time.sleep(0.001)
-
-    time.sleep(0.01)  # Wait 10ms
+    # Wait 60ms instead of waiting for T1 response
+    time.sleep(0.06)
 
     # Send 4-bit band ID
     for bit in binary_representation:
         send_bit(int(bit))
 
-    gpio_output(TUNE_PIN, 0)
+    # Final 1.5ms high pulse
+    gpio_output(DATA_PIN, 1)
+    time.sleep(0.0015)
+    gpio_output(DATA_PIN, 0)
+
     print("Finished sending band information.")
 
 def main():
