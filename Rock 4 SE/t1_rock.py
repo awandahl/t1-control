@@ -3,12 +3,12 @@ import subprocess
 import gpiod
 
 # Define the GPIO chip and pin numbers
-CHIP = 'gpiochip4'
-TUNE_PIN = 18  # GPIO4_C2, physical pin 11
-DATA_PIN = 22  # GPIO4_C6, physical pin 13
+CHIP = 'gpiochip4' # You might need to change this based on your setup, see https://wiki.radxa.com/Rock4/hardware/gpio
+TUNE_PIN = 18  # GPIO4_C2, physical pin 11 - Replace with actual GPIO number
+DATA_PIN = 22  # GPIO4_C6, physical pin 13 - Replace with actual GPIO number
 
 # Rigctl configuration
-RIG_MODEL = "2002"  # TS-440S for QRP Labs QDX. Replace with your radio's model number
+RIG_MODEL = "2002"  # TS-440S for QRP Labs QDX. Replace with your radio's model number, see https://github.com/Hamlib/Hamlib/wiki/Supported-Radios
 RIG_PORT = "/dev/ttyACM0"  # Replace with your actual port
 
 chip = gpiod.Chip(CHIP)
