@@ -1,6 +1,6 @@
 ### T1 control by Rock 4 SE  
 
-The Rock 4 SE, like other Rock 4 series boards, uses a different GPIO numbering system compared to the Raspberry Pi. This is due to the different SoC (System on Chip) used in these boards.  
+The Rock 4 SE, like other Rock 4 series boards, uses a different GPIO numbering system compared to the Raspberry Pi. This is due to the different SoC (System on Chip) used in these boards.
 For the Rock 4 SE:  
 1. GPIO numbering is based on the RK3399 chip's GPIO banks and pins within those banks.  
 2. The formula to calculate the GPIO number is:  
