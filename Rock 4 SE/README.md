@@ -1,5 +1,16 @@
 ### T1 control by Rock 4 SE  
 
+GPIO numbers like 18 and 22 are derived from an offset calculation based on the GPIO bank and pin. For instance, GPIO4_C2 means:
+
+GPIO bank 4, port C (where C represents an offset of 2, starting from A as 0).
+Each bank has 32 pins (A-D).
+The formula is: GPIO number = Bank * 32 + Port offset * 8 + Pin number.
+For example:
+
+GPIO4_C2 = 4 * 32 + 2 = 18
+GPIO4_C6 = 4 * 32 + 6 = 22.
+
+You can refer to this GPIO wiki for more details.
 
 
 https://wiki.radxa.com/Rock4/hardware/gpio
