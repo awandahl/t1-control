@@ -10,7 +10,7 @@ TUNE_PIN = 18  # GPIO4_C2, physical pin 11
 DATA_PIN = 22  # GPIO4_C6, physical pin 13
 
 # Set up logging
-logging.basicConfig(filename='rigctld_errors.log', level=logging.ERROR)
+logging.basicConfig(filename='/home/aw/t1-control/rigctld_errors.log', level=logging.ERROR)
 
 chip = gpiod.Chip(CHIP)
 tune_line = chip.get_line(TUNE_PIN)
