@@ -1,15 +1,16 @@
 import time
 import subprocess
 import gpiod
+import socket
+import logging
 
 # Define the GPIO chip and pin numbers
-CHIP = 'gpiochip4' # You might need to change this based on your setup, see https://wiki.radxa.com/Rock4/hardware/gpio
-TUNE_PIN = 18  # GPIO4_C2, physical pin 11 - Replace with actual GPIO number
-DATA_PIN = 22  # GPIO4_C6, physical pin 13 - Replace with actual GPIO number
+CHIP = 'gpiochip4'
+TUNE_PIN = 18  # GPIO4_C2, physical pin 11
+DATA_PIN = 22  # GPIO4_C6, physical pin 13
 
-# Rigctl configuration
-RIG_MODEL = "2002"  # TS-440S for QRP Labs QDX. Replace with your radio's model number, see https://github.com/Hamlib/Hamlib/wiki/Supported-Radios
-RIG_PORT = "/dev/ttyACM0"  # Replace with your actual port
+# Set up logging
+logging.basicConfig(filename='/home/aw/t1-control/rigctld_errors.log', level=logging.ERROR)
 
 chip = gpiod.Chip(CHIP)
 tune_line = chip.get_line(TUNE_PIN)
@@ -29,15 +30,23 @@ def gpio_output(pin, value):
     elif pin == DATA_PIN:
         data_line.set_value(value)
 
-def get_frequency():
-    """Get current frequency from the radio using rigctl."""
-    try:
-        result = subprocess.run(['rigctl', '-m', RIG_MODEL, '-r', RIG_PORT, 'f'], 
-                                capture_output=True, text=True, check=True)
-        return int(result.stdout.strip())
-    except subprocess.CalledProcessError as e:
-        print(f"Error getting frequency: {e}")
-        return None
+def get_frequency(max_retries=3, retry_delay=1):
+    for attempt in range(max_retries):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(10)  # Increase timeout to 10 seconds
+                s.connect(('localhost', 4532))
+                s.sendall(b'f\n')
+                response = s.recv(1024).decode().strip()
+                if response.startswith('RPRT'):
+                    raise ValueError(f"Rigctld returned an error: {response}")
+                return int(response)
+        except (socket.error, ValueError) as e:
+            logging.error(f"Error getting frequency (attempt {attempt+1}/{max_retries}): {e}")
+            print(f"Error getting frequency (attempt {attempt+1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+    return None
 
 def frequency_to_band(freq):
     """Convert frequency to band ID."""
@@ -93,20 +102,34 @@ def send_band(band):
 
     print("Finished sending band information.")
 
+def restart_rigctld():
+    print("Attempting to restart rigctld...")
+    subprocess.run(['killall', 'rigctld'], check=False)
+    time.sleep(1)
+    subprocess.Popen(['rigctld', '-m', '2002', '-r', '/dev/ttyACM0', '-t', '4532'])
+    time.sleep(2)  # Give rigctld time to start
+
 def main():
     gpio_setup()
     prev_band = None
+    consecutive_errors = 0
     try:
         print(f"Starting T1 control for Armbian")
-        print(f"Rig model: {RIG_MODEL}, Port: {RIG_PORT}")
         while True:
             freq = get_frequency()
             if freq is not None:
+                consecutive_errors = 0
                 band = frequency_to_band(freq)
                 if band != prev_band:
                     print(f"Frequency: {freq} Hz, Band: {band}")
                     send_band(band)
                     prev_band = band
+            else:
+                consecutive_errors += 1
+                print(f"Failed to get frequency. Consecutive errors: {consecutive_errors}")
+                if consecutive_errors >= 10:
+                    restart_rigctld()
+                    consecutive_errors = 0
             time.sleep(5)  # Check every 5 seconds
     except KeyboardInterrupt:
         print("Program terminated by user")
