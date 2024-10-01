@@ -2,11 +2,15 @@ import time
 import subprocess
 import gpiod
 import socket
+import logging
 
 # Define the GPIO chip and pin numbers
 CHIP = 'gpiochip4'
 TUNE_PIN = 18  # GPIO4_C2, physical pin 11
 DATA_PIN = 22  # GPIO4_C6, physical pin 13
+
+# Set up logging
+logging.basicConfig(filename='rigctld_errors.log', level=logging.ERROR)
 
 chip = gpiod.Chip(CHIP)
 tune_line = chip.get_line(TUNE_PIN)
@@ -30,7 +34,7 @@ def get_frequency(max_retries=3, retry_delay=1):
     for attempt in range(max_retries):
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.settimeout(5)  # Set a timeout for the socket operations
+                s.settimeout(10)  # Increase timeout to 10 seconds
                 s.connect(('localhost', 4532))
                 s.sendall(b'f\n')
                 response = s.recv(1024).decode().strip()
@@ -38,6 +42,7 @@ def get_frequency(max_retries=3, retry_delay=1):
                     raise ValueError(f"Rigctld returned an error: {response}")
                 return int(response)
         except (socket.error, ValueError) as e:
+            logging.error(f"Error getting frequency (attempt {attempt+1}/{max_retries}): {e}")
             print(f"Error getting frequency (attempt {attempt+1}/{max_retries}): {e}")
             if attempt < max_retries - 1:
                 time.sleep(retry_delay)
@@ -97,6 +102,13 @@ def send_band(band):
 
     print("Finished sending band information.")
 
+def restart_rigctld():
+    print("Attempting to restart rigctld...")
+    subprocess.run(['killall', 'rigctld'], check=False)
+    time.sleep(1)
+    subprocess.Popen(['rigctld', '-m', '2002', '-r', '/dev/ttyACM0', '-t', '4532'])
+    time.sleep(2)  # Give rigctld time to start
+
 def main():
     gpio_setup()
     prev_band = None
@@ -115,8 +127,7 @@ def main():
             else:
                 consecutive_errors += 1
                 print(f"Failed to get frequency. Consecutive errors: {consecutive_errors}")
-                if consecutive_errors >= 5:
-                    print("Too many consecutive errors. Attempting to restart rigctld...")
+                if consecutive_errors >= 10:
                     restart_rigctld()
                     consecutive_errors = 0
             time.sleep(5)  # Check every 5 seconds
@@ -124,12 +135,6 @@ def main():
         print("Program terminated by user")
     finally:
         gpio_cleanup()
-
-def restart_rigctld():
-    subprocess.run(['killall', 'rigctld'], check=False)
-    time.sleep(1)
-    subprocess.Popen(['rigctld', '-m', '2002', '-r', '/dev/ttyACM0', '-t', '4532'])
-    time.sleep(2)  # Give rigctld time to start
 
 if __name__ == "__main__":
     main()
