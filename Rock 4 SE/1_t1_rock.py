@@ -1,15 +1,12 @@
 import time
 import subprocess
 import gpiod
+import socket
 
 # Define the GPIO chip and pin numbers
-CHIP = 'gpiochip4'
-TUNE_PIN = 18  # GPIO4_C2, physical pin 11
-DATA_PIN = 22  # GPIO4_C6, physical pin 13
-
-# Rigctl configuration
-RIG_MODEL = "2002"  # TS-440S for QRP Labs QDX
-RIG_PORT = "/dev/ttyACM0"  # Replace with your actual port
+CHIP = 'gpiochip4' # You might need to change this based on your setup, see https://wiki.radxa.com/Rock4/hardware/gpio
+TUNE_PIN = 18  # GPIO4_C2, physical pin 11 - Replace with actual GPIO number
+DATA_PIN = 22  # GPIO4_C6, physical pin 13 - Replace with actual GPIO number
 
 chip = gpiod.Chip(CHIP)
 tune_line = chip.get_line(TUNE_PIN)
@@ -30,16 +27,15 @@ def gpio_output(pin, value):
         data_line.set_value(value)
 
 def get_frequency():
-    """Get current frequency from the radio using rigctl."""
+    """Get current frequency from rigctld."""
     try:
-        result = subprocess.run(['rigctl', '-m', RIG_MODEL, '-r', RIG_PORT, 'f'], 
-                                capture_output=True, text=True, check=True, timeout=2)
-        return int(result.stdout.strip())
-    except subprocess.CalledProcessError as e:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect(('localhost', 4532))
+            s.sendall(b'f\n')
+            response = s.recv(1024).decode().strip()
+        return int(response)
+    except (socket.error, ValueError) as e:
         print(f"Error getting frequency: {e}")
-        return None
-    except subprocess.TimeoutExpired:
-        print("Timeout while getting frequency")
         return None
 
 def frequency_to_band(freq):
@@ -99,29 +95,17 @@ def send_band(band):
 def main():
     gpio_setup()
     prev_band = None
-    consecutive_errors = 0
     try:
         print(f"Starting T1 control for Armbian")
         print(f"Rig model: {RIG_MODEL}, Port: {RIG_PORT}")
         while True:
             freq = get_frequency()
             if freq is not None:
-                consecutive_errors = 0  # Reset error counter on successful read
                 band = frequency_to_band(freq)
                 if band != prev_band:
                     print(f"Frequency: {freq} Hz, Band: {band}")
                     send_band(band)
                     prev_band = band
-            else:
-                consecutive_errors += 1
-                print(f"Failed to get frequency. Consecutive errors: {consecutive_errors}")
-                if consecutive_errors >= 5:
-                    print("Too many consecutive errors. Attempting to restart rigctld...")
-                    subprocess.run(['killall', 'rigctld'], check=False)
-                    time.sleep(1)
-                    subprocess.Popen(['rigctld', '-m', RIG_MODEL, '-r', RIG_PORT])
-                    time.sleep(2)  # Give rigctld time to start
-                    consecutive_errors = 0
             time.sleep(5)  # Check every 5 seconds
     except KeyboardInterrupt:
         print("Program terminated by user")
