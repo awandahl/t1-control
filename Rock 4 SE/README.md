@@ -1,5 +1,5 @@
 ### T1 control Rock 4 SE  
-#### This is a python script where the fq of my QRP Labs QDX/QMX can control the band memory setting on the Elecraft T1 automatic tuner. Any transceiver using rigctld can be used of course...
+#### This is a python script where the fq of my QRP Labs QDX/QMX can control the band memory setting on the Elecraft T1 automatic tuner. Any transceiver using rigctld can be used, of course...
 
 
 Rock 4 SE specific information:  
