@@ -1,4 +1,4 @@
-
+### T1 control, just a sketch, for working application see Rock 4 SE
 
 https://github.com/TinkerBoard/gpio_lib_python
 
