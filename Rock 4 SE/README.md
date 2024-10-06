@@ -1,6 +1,9 @@
-### T1 control by Rock 4 SE  
+### T1 control Rock 4 SE  
+#### This is a fully working script where the fq of my QRP Labs QDX/QMX can control the band memory setting on the Elecraft T1 automatic tuner. Any transceiver using rigctld can be used of course...
 
-GPIO numbers like 18 and 22 are derived from an offset calculation based on the GPIO bank and pin. For instance, GPIO4_C2 means:
+
+Rock 4 SE specific information:  
+GPIO numbers like 18 and 22 are derived from an offset calculation based on the GPIO bank and pin. For instance, GPIO4_C2 means:  
 
 GPIO bank 4, port C (where C represents an offset of 2, starting from A as 0).
 Each bank has 32 pins (A-D).
